@@ -17,6 +17,26 @@ GPIO.setup(BtnPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 stop_button = False
 show_score_mode = False  # False = stats, True = Study Environment Score
 
+# ----------------- Buzzer (GPIO25) -----------------
+BuzzerPin = 25            # BCM 25
+BUZZER_ACTIVE_LOW = True  # si pas de son -> mets False
+
+def buzzer_setup():
+    # initialise à OFF
+    GPIO.setup(BuzzerPin, GPIO.OUT)
+    buzzer_off()
+
+def buzzer_on():
+    GPIO.output(BuzzerPin, GPIO.LOW if BUZZER_ACTIVE_LOW else GPIO.HIGH)
+
+def buzzer_off():
+    GPIO.output(BuzzerPin, GPIO.HIGH if BUZZER_ACTIVE_LOW else GPIO.LOW)
+
+def buzzer_beep(duration=0.08):
+    buzzer_on()
+    time.sleep(duration)
+    buzzer_off()
+
 def button_loop():
     global stop_button, show_score_mode
     last = GPIO.input(BtnPin)
@@ -26,6 +46,7 @@ def button_loop():
 
         # falling edge: 1 -> 0 means pressed (pull-up)
         if current == 0 and last == 1:
+            buzzer_beep(0.08)  # <-- beep à chaque pression
             show_score_mode = not show_score_mode
             print("Pressed -> mode:", "SCORE" if show_score_mode else "STATS")
             time.sleep(0.2)  # debounce
@@ -142,6 +163,7 @@ def setup():
     LCD1602.init(0x27, 1)
     LCD1602.clear()
     led_setup()
+    buzzer_setup()  # <-- buzzer init
 
     t_led = threading.Thread(target=blinker_loop, daemon=True)
     t_led.start()
@@ -233,7 +255,10 @@ def loop():
 
         # Console output
         temp_str = f"{temp_c:0.2f}C" if temp_c is not None else "N/A"
-        base_line = f"Temp:{temp_str} | Light:{light_raw:3d} ({light_pct:3d}%) | Sound:{sound_pct:3d}% | Score:{score:3d}"
+        base_line = (
+            f"Temp:{temp_str} | Light:{light_raw:3d} ({light_pct:3d}%) | "
+            f"Sound:{sound_pct:3d}% | Score:{score:3d}"
+        )
         if uncomfortable_flag:
             print(base_line + "  >>> INCONFORT: " + ", ".join(reasons))
         else:
@@ -261,6 +286,11 @@ def destroy():
     global stop_blinker, stop_button
     stop_blinker = True
     stop_button = True
+
+    try:
+        buzzer_off()
+    except:
+        pass
 
     try:
         led_off()

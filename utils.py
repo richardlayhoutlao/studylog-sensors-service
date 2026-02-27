@@ -1,3 +1,6 @@
+import random
+
+
 def pad16(text: str) -> str:
     return (text + " " * 16)[:16]
 
@@ -27,3 +30,7 @@ def map_range_to_percent(x, x_min, x_max):
         return 0
     x = clamp(x, x_min, x_max)
     return int((x - x_min) * 100 / (x_max - x_min))
+
+
+def compute_study_score(_temp_c, _light_pct, _sound_pct):
+    return random.randint(0, 100)

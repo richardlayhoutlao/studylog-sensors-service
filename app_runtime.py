@@ -6,7 +6,6 @@ from config import (
     LCD_ADDR,
     LCD_BACKLIGHT,
     LOOP_SLEEP_S,
-    NEED_CONSEC,
     PCF8591_ADDR,
     REASON_BRIGHT,
     REASON_COLD,
@@ -28,6 +27,16 @@ from sensors.temperature import read_temp_c
 from io_modules.button import ButtonModeToggle
 from io_modules.lcd_screen import LCDScreen
 from io_modules.rgb_led import RGBLedBlinker
+import paho.mqtt.client as mqtt
+from random import randrange, uniform
+import json
+import time
+
+mqttBroker = "test.mosquitto.org"
+client = mqtt.Client(
+    callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="Studylog")
+client.connect(mqttBroker)
+
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -50,51 +59,32 @@ def setup():
     return led, button, lcd_screen, sound_processor
 
 
-def _evaluate_discomfort(temp_c, light_pct, sound_pct, counters):
-    cold_n, hot_n, dark_n, bright_n, loud_n = counters
+def _evaluate_discomfort(temp_c, light_pct, sound_pct):
     reasons = []
 
-    if temp_c is None:
-        cold_n = hot_n = 0
-    else:
-        if temp_c < TEMP_COLD:
-            cold_n += 1
-            hot_n = 0
-        elif temp_c > TEMP_HOT:
-            hot_n += 1
-            cold_n = 0
-        else:
-            cold_n = hot_n = 0
-
-    if cold_n >= NEED_CONSEC:
+    if temp_c is not None and temp_c < TEMP_COLD:
         reasons.append(REASON_COLD)
-    if hot_n >= NEED_CONSEC:
+    if temp_c is not None and temp_c > TEMP_HOT:
         reasons.append(REASON_HOT)
 
-    dark_n = dark_n + 1 if light_pct < LIGHT_TOO_DARK else 0
-    bright_n = bright_n + 1 if light_pct > LIGHT_TOO_BRIGHT else 0
-    if dark_n >= NEED_CONSEC:
+    if light_pct < LIGHT_TOO_DARK:
         reasons.append(REASON_DARK)
-    if bright_n >= NEED_CONSEC:
+    if light_pct > LIGHT_TOO_BRIGHT:
         reasons.append(REASON_BRIGHT)
 
-    loud_n = loud_n + 1 if sound_pct > SOUND_TOO_LOUD else 0
-    if loud_n >= NEED_CONSEC:
+    if sound_pct > SOUND_TOO_LOUD:
         reasons.append(REASON_LOUD)
 
-    return reasons, (cold_n, hot_n, dark_n, bright_n, loud_n)
+    return reasons
 
 
 def run_loop(led, button, lcd_screen, sound_processor):
-    counters = (0, 0, 0, 0, 0)
-
     while True:
         temp_c = read_temp_c()
         light_raw, light_pct = read_light(ADC, channel=0)
         sound_pct = sound_processor.read_sound_percent(ADC, channel=1)
 
-        reasons, counters = _evaluate_discomfort(
-            temp_c, light_pct, sound_pct, counters)
+        reasons = _evaluate_discomfort(temp_c, light_pct, sound_pct)
 
         uncomfortable = len(reasons) > 0
         led.uncomfortable = uncomfortable
@@ -102,20 +92,26 @@ def run_loop(led, button, lcd_screen, sound_processor):
         score = compute_study_score(temp_c, light_pct, sound_pct)
         temp_str = f"{temp_c:0.2f}C" if temp_c is not None else "N/A"
 
-        base_line = (
-            f"Temp:{temp_str} | Light:{light_raw:3d} ({light_pct:3d}%) | "
-            f"Sound:{sound_pct:3d}% | Score:{score:3d}"
-        )
-        if uncomfortable:
-            print(base_line + "  >>> INCONFORT: " + ", ".join(reasons))
-        else:
-            print(base_line)
-
+        # LCD
         if button.show_score_mode:
             lcd_screen.show_score(score)
         else:
             lcd_screen.show_stats(temp_str, light_pct, sound_pct,
-                              uncomfortable, reasons)
+                                  uncomfortable, reasons)
+            
+            
+        # MQTT PUBLISH
+        payload = {
+            "temperature_score": temp_c,
+            "light_score": light_pct,
+            "sound_score": sound_pct,
+            "score": score,
+            "uncomfortable": uncomfortable,
+            "reasons": reasons
+        }
+        client.publish("Studylog-Richard", json.dumps(payload))
+        # TERMINAL OUTPUT
+        print(json.dumps(payload))
 
         time.sleep(LOOP_SLEEP_S)
 

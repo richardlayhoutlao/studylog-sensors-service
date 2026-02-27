@@ -36,5 +36,5 @@ def compute_study_score(_temp_c, _light_pct, _sound_pct):
     light_score = clamp(int(_light_pct), 0, 100)
     sound_score = 100 - clamp(int(_sound_pct), 0, 100)
 
-    score = int(0.4 * temp_score + 0.35 * light_score + 0.25 * sound_score)
+    score = int(0.33 * temp_score + 0.33 * light_score + 0.33 * sound_score)
     return clamp(score, 0, 100)

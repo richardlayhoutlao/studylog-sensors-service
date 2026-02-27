@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #------------------------------------------------------
 #
 #		This is a program for PCF8591 Module.

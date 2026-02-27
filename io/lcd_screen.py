@@ -1,7 +1,7 @@
 from utils import pad16
 
 
-class LCDUI:
+class LCDScreen:
     def __init__(self, lcd_driver):
         self.lcd = lcd_driver
 

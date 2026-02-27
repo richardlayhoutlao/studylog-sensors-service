@@ -31,16 +31,19 @@ from random import randrange, uniform
 import json
 import time
 
-mqttBroker = "test.mosquitto.org"
-client = mqtt.Client(
-    callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="Studylog")
-client.connect(mqttBroker)
+
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 
 def setup():
+    
+    mqttBroker = "test.mosquitto.org"
+    client = mqtt.Client(
+        callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id="Studylog")
+    client.connect(mqttBroker)
+
     ADC.setup(PCF8591_ADDR)
     LCD1602.init(LCD_ADDR, LCD_BACKLIGHT)
     LCD1602.clear()

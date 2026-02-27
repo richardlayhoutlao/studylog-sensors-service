@@ -100,7 +100,7 @@ def run_loop(led, button, lcd_screen, sound_processor):
             
         # MQTT PUBLISH
         payload = {
-            "temperature_score": temp_c,
+            "temperature": temp_c,
             "light_score": light_pct,
             "sound_score": sound_pct,
             "score": score,

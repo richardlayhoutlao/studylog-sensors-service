@@ -9,7 +9,7 @@ from utils import clamp
 
 class RGBLedBlinker:
     def __init__(self):
-        self.uncomfortable = False
+        self.is_uncomfortable = False
         self._stop = False
         self._thread = None
         self._led_lock = threading.Lock()
@@ -45,7 +45,7 @@ class RGBLedBlinker:
     def _loop(self):
         is_on = False
         while not self._stop:
-            if self.uncomfortable:
+            if self.is_uncomfortable:
                 is_on = not is_on
                 if is_on:
                     self.set_rgb(100, 0, 0)

@@ -14,8 +14,8 @@ class LCDScreen:
         self.lcd.write(0, 0, pad16(line0))
         self.lcd.write(0, 1, pad16(line1))
 
-    def show_stats(self, temp_str, light_pct, sound_pct, uncomfortable, reasons):
-        if uncomfortable:
+    def show_stats(self, temp_str, light_pct, sound_pct, is_uncomfortable, reasons):
+        if is_uncomfortable:
             line0 = "Incomfort:"
             line1 = ",".join(reasons)[:16]
         else:

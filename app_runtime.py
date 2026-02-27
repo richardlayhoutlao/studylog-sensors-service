@@ -86,8 +86,8 @@ def run_loop(led, button, lcd_screen, sound_processor):
 
         reasons = _evaluate_discomfort(temp_c, light_pct, sound_pct)
 
-        uncomfortable = len(reasons) > 0
-        led.uncomfortable = uncomfortable
+        is_uncomfortable = len(reasons) > 0
+        led.is_uncomfortable = is_uncomfortable
 
         score = compute_study_score(temp_c, light_pct, sound_pct)
         temp_str = f"{temp_c:0.2f}C" if temp_c is not None else "N/A"
@@ -97,7 +97,7 @@ def run_loop(led, button, lcd_screen, sound_processor):
             lcd_screen.show_score(score)
         else:
             lcd_screen.show_stats(temp_str, light_pct, sound_pct,
-                                  uncomfortable, reasons)
+                                  is_uncomfortable, reasons)
             
             
         # MQTT PUBLISH
@@ -106,7 +106,7 @@ def run_loop(led, button, lcd_screen, sound_processor):
             "light_score": light_pct,
             "sound_score": sound_pct,
             "score": score,
-            "uncomfortable": uncomfortable,
+            "is_uncomfortable": is_uncomfortable,
             "reasons": reasons
         }
         client.publish("Studylog-Richard", json.dumps(payload))

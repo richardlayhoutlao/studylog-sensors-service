@@ -1,5 +1,3 @@
-import importlib.util
-import os
 import time
 
 import RPi.GPIO as GPIO
@@ -27,24 +25,9 @@ from utils import compute_study_score
 from sensors.light import read_light
 from sensors.sound import SoundLevelProcessor
 from sensors.temperature import read_temp_c
-
-
-def _load_io_module(module_name):
-    module_path = os.path.join(os.path.dirname(
-        __file__), "io", f"{module_name}.py")
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-_button_module = _load_io_module("button")
-_lcd_module = _load_io_module("lcd_ui")
-_rgb_module = _load_io_module("rgb_led")
-
-ButtonModeToggle = _button_module.ButtonModeToggle
-LCDUI = _lcd_module.LCDUI
-RGBLedBlinker = _rgb_module.RGBLedBlinker
+from io_modules.button import ButtonModeToggle
+from io_modules.lcd_screen import LCDScreen
+from io_modules.rgb_led import RGBLedBlinker
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -61,10 +44,10 @@ def setup():
     button = ButtonModeToggle()
     button.start()
 
-    lcd_ui = LCDUI(LCD1602)
+    lcd_screen = LCDScreen(LCD1602)
     sound_processor = SoundLevelProcessor()
 
-    return led, button, lcd_ui, sound_processor
+    return led, button, lcd_screen, sound_processor
 
 
 def _evaluate_discomfort(temp_c, light_pct, sound_pct, counters):
@@ -102,7 +85,7 @@ def _evaluate_discomfort(temp_c, light_pct, sound_pct, counters):
     return reasons, (cold_n, hot_n, dark_n, bright_n, loud_n)
 
 
-def run_loop(led, button, lcd_ui, sound_processor):
+def run_loop(led, button, lcd_screen, sound_processor):
     counters = (0, 0, 0, 0, 0)
 
     while True:
@@ -129,15 +112,15 @@ def run_loop(led, button, lcd_ui, sound_processor):
             print(base_line)
 
         if button.show_score_mode:
-            lcd_ui.show_score(score)
+            lcd_screen.show_score(score)
         else:
-            lcd_ui.show_stats(temp_str, light_pct, sound_pct,
+            lcd_screen.show_stats(temp_str, light_pct, sound_pct,
                               uncomfortable, reasons)
 
         time.sleep(LOOP_SLEEP_S)
 
 
-def destroy(led, button, lcd_ui):
+def destroy(led, button, lcd_screen):
     try:
         button.stop()
     except Exception:
@@ -149,7 +132,7 @@ def destroy(led, button, lcd_ui):
         pass
 
     try:
-        lcd_ui.clear()
+        lcd_screen.clear()
     except Exception:
         pass
 
@@ -157,14 +140,14 @@ def destroy(led, button, lcd_ui):
 
 
 def run():
-    led = button = lcd_ui = sound_processor = None
+    led = button = lcd_screen = sound_processor = None
     try:
-        led, button, lcd_ui, sound_processor = setup()
-        run_loop(led, button, lcd_ui, sound_processor)
+        led, button, lcd_screen, sound_processor = setup()
+        run_loop(led, button, lcd_screen, sound_processor)
     except KeyboardInterrupt:
         pass
     finally:
-        if led is not None and button is not None and lcd_ui is not None:
-            destroy(led, button, lcd_ui)
+        if led is not None and button is not None and lcd_screen is not None:
+            destroy(led, button, lcd_screen)
         else:
             GPIO.cleanup()

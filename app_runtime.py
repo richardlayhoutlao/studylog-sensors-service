@@ -107,7 +107,7 @@ def run_loop(led, button, lcd_screen, sound_processor):
             "is_uncomfortable": is_uncomfortable,
             "reasons": reasons
         }
-        client.publish("Studylog-Richard", payload)
+        client.publish("Studylog-Richard", str(payload))
         # TERMINAL OUTPUT
         print(json.dumps(payload))
 
